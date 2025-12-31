@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跨年快乐 2026</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        #countdown {
+            font-size: 15vw;
+            font-weight: bold;
+            color: #ff3b3b;
+            text-shadow: 0 0 20px #ff0000;
+            z-index: 10;
+        }
+        #message {
+            display: none;
+            font-size: 8vw;
+            text-align: center;
+            z-index: 10;
+            animation: fadeIn 2s ease;
+        }
+        #sub-message {
+            font-size: 4vw;
+            margin-top: 20px;
+            color: #ffd700;
+        }
+        #content {
+            display: none;
+            z-index: 10;
+            max-width: 80%;
+            text-align: center;
+            animation: fadeIn 1s ease;
+            overflow-y: auto;
+            max-height: 70vh;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 20;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .couplet {
+            margin: 20px 0;
+            font-family: 'SimSun', serif;
+        }
+        .couplet-top, .couplet-bottom {
+            font-size: 1.5em;
+            margin: 5px 0;
+        }
+        .couplet-middle {
+            font-size: 1.2em;
+            color: #ffd700;
+            margin: 10px 0;
+        }
+        .food-list {
+            text-align: left;
+            margin: 15px auto;
+            max-width: 80%;
+            line-height: 1.6;
+        }
+        .彩蛋-container {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            max-height: 40vh;
+            overflow-y: auto;
+            font-size: 0.9em;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        .typing-effect {
+            overflow: hidden;
+            border-right: .15em solid orange;
+            white-space: nowrap;
+            margin: 0 auto;
+            animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        }
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: orange }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="countdown">5</div>
+    <div id="message">
+        <div>🎉 新年快乐! 🎉</div>
+        <div id="sub-message"></div>
+    </div>
+    <div id="content"></div>
+    <canvas id="fireworks"></canvas>
+
+    <script>
+        // 配置区 - 扩展更多内容
+        const messages = [
+            "新的一年，新的 Bug (划掉) 机遇！",
+            "愿代码无 Bug，生活无 Null。",
+            "2026，马到成功，万事顺遂！",
+            "愿你兜里有钱、心里有光。",
+            "Hello World, Hello 2026!",
+            "红马送福来，愿您龙马精神永不减！",
+            "骏马奔腾开新局，祝你财运如马蹄声声！",
+            "以梦为马，不负韶华，未来皆可期。",
+            "“马”上发财，钱包“马”上膨胀！"
+        ];
+
+        const coupletTypes = ["喜庆", "学业", "事业", "幽默风趣", "温暖感动", "清远悠长"];
+        const couplets = {
+            "喜庆": [
+                ["春风送暖千家福", "瑞雪迎新万象兴", "新春大吉"],
+                ["岁启新元百事顺", "年添锦绣万家欢", "万事如意"],
+            ],
+            "学业": [
+                ["灯下苦读三更月", "笔下生花万里程", "金榜题名"],
+            ],
+            "事业": [
+                ["一帆风顺年年好", "万事如意步步高", "五福临门"],
+            ],
+            "幽默风趣": [
+                ["旧岁烦恼全清零", "新年快乐满格充", "元气爆棚"],
+                ["干饭追剧无烦恼", "暴富脱单不迟到", "心想事成"],
+                ["去年立下的flag倒一片", "今年目标咱主打一个稳", "慢慢来赢"],
+                ["旧岁摸鱼全清零", "红马踏春“马”上赢", "一马当先"],
+            ],
+            "温暖感动": [
+                ["家人闲坐灯火可亲", "新年伊始喜乐安宁", "岁岁平安"],
+                ["旧年风雨皆同舟", "新岁暖阳共携手", "人间值得"],
+            ],
+            "清远悠长": [
+                ["旧岁千般皆如意", "新年万事定称心", "时和岁好"],
+                ["雪落梅开迎新岁", "风清月朗贺丰年", "春满人间"],
+            ]
+        };
+
+        const wishOptions = ["身体健康", "学业进步", "财富自由", "隐藏选项·天命之光"];
+        
+        // 蒸马肉等隐藏内容
+        const foodList = `您今年会吃到————
+蒸马脯、蒸马腱、蒸马尾儿，烧马排、烧马腿、烧马块儿，
+卤马肉、酱马肉、熏马肠、马肉腊肉、松花马肉卷、马肉小肚儿、
+晾马肉、风干马肠，什锦马肉苏盘、熏马肋、白肚马肉卷、
+清蒸八宝马肉、江米酿马肉，罐儿焖马腩、罐儿煨马腱、
+卤什锦马肉、酱马肘、卤马舌、烩马肚、炝马板筋儿，
+马里脊、马腿肉、马肉菜蟒、马肉鱼丸、清蒸马肉哈什蚂，
+烩马腰儿、烩马条儿、清拌马丝儿、马心管儿，焖马腩、
+红烧马肉、豆豉焖马肉、锅烧马排、烀皮马肉、锅烧马块、
+抓炒马柳，软炸马里脊、软炸马排、什锦马肉套肠、麻酥马肉卷儿，
+熘马肉鲜蘑、熘马脯儿、熘马鱼片儿、熘马肚儿、醋熘马肉片儿，
+烩马肉三鲜、烩马肉白蘑、烩马肉鸽子蛋、炒马肉丝、
+红马年压轴硬菜：
+【龙马精神马肉大盘鸡】、【马到成功红烧马排】、
+【福禄绵长炖马肉大鹅】、【一马当先香酥马腿】！
+祝新岁吃嘛嘛香、龙马精神、万事顺遂！`;
+
+        // 旮旯给木彩蛋内容
+        const easterEggContent = `H. Sora与旮旯给木
+
+time limit per test
+1 s
+
+memory limit per test
+256 megabytes
+
+**以下全是出题人发癫，题目正文往下翻**
+
+你为啥跟我直接表白啊?! 嘎啦game里不是这样!你应该多跟我聊天，然后提升我的好感度。
+偶尔给我送送礼物，然后在那个特殊节日时候跟我有特殊互动。最后在某个我内心神秘事件中，
+向我表白，我同意跟你在一起，然后我给你看我的特殊CG啊。你怎么直接上来跟我表白!?
+嘎啦game里根本不是这样!我不接受!!
+
+什么叫我跟很多人搞暧昧啊galgame里就是这样我单身你也单身他们都是单身他们都是可攻略角色
+我当然可以和他们聊天了那如果最后每一个人我都聊失败了这不是更可怜吗再说了我连你对我的好
+感度有多少我都不知道我还没开始玩你这条支线呐你先排队吧好不好什么叫只可以跟你聊天啊你
+这个人怎么这么自私我不跟你聊了!!!
+
+galgame里刷好感度不应该都是这么刷的吗?? 我和你聊天开心了好感度嘎嘎往上涨，我每次跟
+你聊天你都嘎嘎乐啊，你跟我畅聊这么久，结果你今天给我分享个男的说你爱上他了，不是凭啥啊，
+galgame里根本不是这样的，你俩初始好感度应该是0，我跟你聊这么久，我跟你好感度应该早就
+满了，不是应该你向我表白吗?你怎么说喜欢那个男的啊
+
+把我挂在网上很正常啊，因为我是高人气角色，我是人气王，大家都想攻略我，又没有我的攻略手段，
+就有好心人出来给大家答疑解惑了。嘎啦game的，唉!是不是这样啊?没办法。魅力值高就是这
+样子的。什么叫我特殊CG也给挂出来了?
+
+我现在禁止任何人跟我聊天！！因为你想一下，我的智商也很高，我的情商也很高而且我在旮旯game
+里面与上百位美少女谈过恋爱，掌握数百种攻略方案，假如对面没什么恋爱经验的话，会比较单
+纯，跟我聊几句话，两三天直接就爱上我了，那我怎么办，我到时候怎么办，你爱我爱的死去活来的，
+我瞬间伤了你的心
+
+**以上全是出题人发癫，从这里开始才是题目**
+
+Sora想要成为Galgame大师，于是开始到处收集Galgame。有的Galgame会给Sora带来愉悦，但有的Galgame则会让Sora非常难受。
+
+现在Sora手上有 n 部Galgame，第 i 部Galgame的愉悦值为 ai。Sora在玩Galgame时会有一个心情值 k。当Sora玩到第 i 部Galgame时，若 ai ≥ k ，则 k 会加一；反之，若 ai < k ，则 k 会减一。开始时Sora的心情值为 0 。请你为Sora安排一下游玩顺序，让Sora心情值能够达到最高，告诉Sora他的心情值最高能是多少。
+
+Input
+第一行一个整数 n（ 1 ≤ n ≤ 10^4 ），表示Galgame的数量。
+第二行 n 个数，第 i 个数为 ai（ 0 ≤ |ai| ≤ 10^9 ），表示这部Galgame的愉悦值。
+
+Output
+输出一行一个整数，表示Sora最后能够到达的最高心情值。
+
+Example
+Input
+5
+-1 3 0 2 1
+
+Output
+3
+
+Note
+Sora可以按 {3,-1,0,1,2} 的顺序玩，最后能够得到 3，且不存在任何一种排列能够得到比这更高的结果。`;
+
+        const canvas = document.getElementById('fireworks');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particles = [];
+        let fireworkInterval;
+        let easterEggShown = false;
+        
+        function random(min, max) { return Math.random() * (max - min) + min; }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.velocity = { x: random(-5, 5), y: random(-5, 5) };
+                this.alpha = 1;
+                this.friction = 0.95;
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            update() {
+                this.velocity.x *= this.friction;
+                this.velocity.y *= this.friction;
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.alpha -= 0.01;
+            }
+        }
+
+        function createFirework() {
+            const x = random(100, canvas.width - 100);
+            const y = random(100, canvas.height - 200);
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            const color = colors[Math.floor(random(0, colors.length))];
+            
+            for (let i = 0; i < 50; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            particles.forEach((particle, index) => {
+                if (particle.alpha > 0) {
+                    particle.draw();
+                    particle.update();
+                } else {
+                    particles.splice(index, 1);
+                }
+            });
+        }
+
+        // 显示彩蛋
+        function showEasterEgg() {
+            if (easterEggShown) return;
+            easterEggShown = true;
+            
+            showSection("🎉 发现彩蛋 🎉", `
+                <div class="彩蛋-container">${easterEggContent.replace(/\n/g, '<br>')}</div>
+                <p>"出题人"撤回了一条消息，并坏笑了一下 😈</p>
+            `);
+            currentStep = steps.length - 2; // 设置为最后一步前，确保下一步能正常工作
+        }
+
+        // 流程控制函数
+        function showSection(title, content, hasNext = true) {
+            const contentEl = document.getElementById('content');
+            contentEl.innerHTML = `
+                <div class="section">
+                    <h2>${title}</h2>
+                    <div>${content}</div>
+                    ${hasNext ? '<button onclick="nextStep()">下一步</button>' : ''}
+                    <!-- 只在最后一步前显示彩蛋按钮 -->
+                    ${currentStep === steps.length - 2 && !easterEggShown ? 
+                        '<button onclick="showEasterEgg()">隐藏彩蛋</button>' : ''}
+                </div>
+            `;
+            contentEl.style.display = 'block';
+        }
+
+        let currentStep = 0;
+        const steps = [
+            // 步骤1: 随机祝福语
+            () => {
+                const randMsgs = [];
+                for (let i = 0; i < 3; i++) {
+                    const msg = messages[Math.floor(Math.random() * messages.length)];
+                    randMsgs.push(`<p class="typing-effect">${msg}</p>`);
+                }
+                showSection("新年祝福", randMsgs.join(''));
+            },
+            // 步骤2: 对联选择
+            () => {
+                let coupletHtml = "<p>请选择对联类型:</p>";
+                coupletTypes.forEach((type, index) => {
+                    coupletHtml += `<button onclick="selectCoupletType(${index})">${type}</button>`;
+                });
+                showSection("选择对联", coupletHtml, false);
+            },
+            // 步骤3: 许愿
+            () => {
+                let wishHtml = "<p>请许下新年愿望:</p>";
+                wishOptions.forEach((option, index) => {
+                    wishHtml += `<button onclick="selectWish(${index})">${option}</button>`;
+                });
+                showSection("新年许愿", wishHtml, false);
+            },
+            // 步骤4: 保存祈福
+            () => {
+                showSection("完成", 
+                    "<p>新年祈福已完成！</p><p>是否保存此次祈福？</p>" +
+                    '<button onclick="saveWish(true)">是</button>' +
+                    '<button onclick="saveWish(false)">否</button>', 
+                    false);
+            }
+        ];
+
+        function nextStep() {
+            currentStep++;
+            if (currentStep < steps.length) {
+                steps[currentStep]();
+            }
+        }
+
+        function selectCoupletType(index) {
+            const type = coupletTypes[index];
+            const typeCouplets = couplets[type] || couplets["喜庆"];
+            const couplet = typeCouplets[Math.floor(Math.random() * typeCouplets.length)];
+            
+            showSection(`您选择的${type}对联`, `
+                <div class="couplet">
+                    <div class="couplet-top">${couplet[0]}</div>
+                    <div class="couplet-top">${couplet[1]}</div>
+                    <div class="couplet-middle">${couplet[2]}</div>
+                </div>
+            `);
+            currentStep = 1; // 保持在对联步骤，等待下一步
+        }
+
+        function selectWish(index) {
+            const wish = wishOptions[index];
+            let wishContent = `<p>您的愿望是: ${wish}</p>`;
+            
+            // 处理隐藏选项，显示蒸马肉等内容
+            if (wish.includes("隐藏")) {
+                wishContent += `
+                    <p>🎉 触发隐藏的天命之光！</p>
+                    <div class="food-list">${foodList.replace(/\n/g, '<br>')}</div>
+                    <p>并得到：一帆风顺、心想事成、前程似锦、万事胜意</p>
+                    <p>🎁 获得派蒙小精灵一只！</p>
+                `;
+            } else {
+                wishContent += `<p>可恶！居然不选天命之光！！😈</p>`;
+                wishContent += `<p>🌟 愿望已收录，正在派送好运中... 🌟</p>`;
+            }
+            
+            showSection("愿望已收录", wishContent);
+            currentStep = 2; // 保持在许愿步骤，等待下一步
+        }
+
+        function saveWish(save) {
+            const message = save ? 
+                "✨ 祈福已保存，愿好运常伴你 ✨" : 
+                "祝你元旦快乐，新年顺遂！🎆";
+            showSection("结束", `<p>${message}</p><p>按下方按钮退出</p><button onclick="window.close()">退出</button>`, false);
+        }
+
+        // 倒计时逻辑
+        let count = 5;
+        const timer = setInterval(() => {
+            count--;
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.innerText = count;
+            
+            if (count <= 0) {
+                clearInterval(timer);
+                countdownEl.style.display = 'none';
+                const messageEl = document.getElementById('message');
+                messageEl.style.display = 'block';
+                
+                // 随机祝福语
+                const randMsg = messages[Math.floor(Math.random() * messages.length)];
+                document.getElementById('sub-message').innerText = randMsg;
+                
+                // 开始放烟花
+                fireworkInterval = setInterval(createFirework, 800);
+                animate();
+
+                // 3秒后显示下一步内容
+                setTimeout(() => {
+                    messageEl.style.display = 'none';
+                    steps[currentStep]();
+                }, 3000);
+            }
+        }, 1000);
+
+        // 适配屏幕调整
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
